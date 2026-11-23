@@ -1,0 +1,284 @@
+CREATE DATABASE retail_sales_db;
+USE retail_sales_db;
+SHOW TABLES;
+
+-- View the first 10 records 
+SELECT *
+FROM retail_sales_dataset
+LIMIT 10;
+
+-- Find the total number of records
+SELECT COUNT(*)
+FROM retail_sales_dataset;
+
+-- Check the column names and data types
+DESCRIBE retail_sales_dataset; 
+
+-- Data Cleaning using SQL
+
+SELECT
+    SUM(CASE WHEN `Transaction ID` IS NULL THEN 1 ELSE 0 END) AS missing_transaction_id,
+    SUM(CASE WHEN Date IS NULL THEN 1 ELSE 0 END) AS missing_date,
+    SUM(CASE WHEN `Customer ID` IS NULL THEN 1 ELSE 0 END) AS missing_customer_id,
+    SUM(CASE WHEN Gender IS NULL THEN 1 ELSE 0 END) AS missing_gender,
+    SUM(CASE WHEN Age IS NULL THEN 1 ELSE 0 END) AS missing_age,
+    SUM(CASE WHEN `Product Category` IS NULL THEN 1 ELSE 0 END) AS missing_category,
+    SUM(CASE WHEN Quantity IS NULL THEN 1 ELSE 0 END) AS missing_quantity,
+    SUM(CASE WHEN `Price per Unit` IS NULL THEN 1 ELSE 0 END) AS missing_price,
+    SUM(CASE WHEN `Total Amount` IS NULL THEN 1 ELSE 0 END) AS missing_total
+FROM retail_sales_dataset;
+
+-- Find duplicate records
+
+SELECT
+    `Transaction ID`,
+    COUNT(*) AS duplicate_count
+FROM retail_sales_dataset
+GROUP BY `Transaction ID`
+HAVING COUNT(*) > 1;
+
+-- Check for incorrect values 
+SELECT *
+FROM retail_sales_dataset
+WHERE Age <= 0 OR Age > 100;
+
+-- Check quantity values
+ SELECT *
+FROM retail_sales_dataset
+WHERE Quantity <= 0;
+
+-- Check price values
+SELECT *
+FROM retail_sales_dataset
+WHERE `Price per Unit` <= 0;
+
+-- Check Total Amount
+ SELECT *
+FROM retail_sales_dataset
+WHERE `Total Amount` <= 0;
+
+-- Verify Total Amount calculation
+ SELECT *
+FROM retail_sales_dataset
+WHERE `Total Amount` != (Quantity * `Price per Unit`);
+
+-- Check the Date column
+ SELECT Date
+FROM retail_sales_dataset
+LIMIT 10;
+
+SELECT
+    MIN(STR_TO_DATE(Date, '%Y-%m-%d')) AS first_date,
+    MAX(STR_TO_DATE(Date, '%Y-%m-%d')) AS last_date
+FROM retail_sales_dataset;
+
+--  Check date validity
+ SELECT *
+FROM retail_sales_dataset
+WHERE STR_TO_DATE(Date, '%Y-%m-%d') IS NULL;
+
+-- Convert Date from TEXT to DATE
+ ALTER TABLE retail_sales_dataset
+MODIFY COLUMN Date DATE;
+
+-- Verify the change
+DESCRIBE retail_sales_dataset;
+SELECT *
+FROM retail_sales_dataset
+LIMIT 5;
+
+-- Check Gender values
+SELECT DISTINCT Gender
+FROM retail_sales_dataset;
+
+-- Check Product Category values
+
+SELECT DISTINCT `Product Category`
+FROM retail_sales_dataset;
+
+-- Check Customer Gender and Age consistency 
+SELECT
+    MIN(Age) AS minimum_age,
+    MAX(Age) AS maximum_age,
+    AVG(Age) AS average_age
+FROM retail_sales_dataset;
+
+-- Check Customer ID duplicates
+ SELECT
+    COUNT(*) AS total_records,
+    COUNT(DISTINCT `Customer ID`) AS unique_customers
+FROM retail_sales_dataset;
+
+-- SQL Business Analysis
+ -- Question 1: What is the total revenue generated?
+ -- The business generated a total revenue of 456,000 across 1,000 transactions.
+ select sum(`Total Amount`) as total_revenue
+ from retail_sales_dataset;
+ 
+ -- Question 2 – Revenue by Product Category
+ -- Electronics is the top-performing product category by revenue, while Beauty has an opportunity for improvement.
+ select `Product Category`,sum(`Total Amount`) as total_revenue
+ from retail_sales_dataset
+ group by `Product Category`
+ order by total_revenue desc;
+ 
+ -- Question 3 – Total number of transactions by category
+ select `Product Category`,count(*) as total_transactions
+ from retail_sales_dataset
+ group by `Product Category`
+ order by total_transactions;
+ 
+ -- Question 4 – Average sales amount
+ select avg(`Total Amount`)as average_sales
+ from retail_sales_dataset;
+ 
+ -- Q5: Monthly Revenue Analysis
+ SELECT
+    DATE_FORMAT(`Date`, '%Y-%m') AS sales_month,
+    SUM(`Total Amount`) AS monthly_revenue
+FROM retail_sales_dataset
+GROUP BY sales_month
+ORDER BY sales_month;
+
+-- Q6	Revenue by Gender
+-- Which gender contributes more to total revenue
+
+select Gender,sum(`Total Amount`) as total_revenue
+from retail_sales_dataset
+group by Gender
+order by total_revenue desc;
+
+-- Q7. Which age group generates the highest revenue?
+SELECT
+    CASE
+        WHEN Age BETWEEN 18 AND 25 THEN '18-25'
+        WHEN Age BETWEEN 26 AND 35 THEN '26-35'
+        WHEN Age BETWEEN 36 AND 45 THEN '36-45'
+        WHEN Age BETWEEN 46 AND 55 THEN '46-55'
+        ELSE 'Above 55'
+    END AS age_group,
+    SUM(`Total Amount`) AS total_revenue
+FROM retail_sales_dataset
+GROUP BY age_group
+ORDER BY total_revenue DESC;
+
+-- Q8. Who are the top 10 customers based on revenue?
+SELECT
+    `Customer ID`,
+    SUM(`Total Amount`) AS total_revenue
+FROM retail_sales_dataset
+GROUP BY `Customer ID`
+ORDER BY total_revenue DESC
+LIMIT 10;
+
+-- Q9. What is the total quantity sold in each product category?
+SELECT
+    `Product Category`,
+    SUM(Quantity) AS total_quantity_sold
+FROM retail_sales_dataset
+GROUP BY `Product Category`
+ORDER BY total_quantity_sold DESC;
+
+-- Q10. What is the average revenue generated by each product category?
+SELECT
+    `Product Category`,
+    AVG(`Total Amount`) AS average_revenue
+FROM retail_sales_dataset
+GROUP BY `Product Category`
+ORDER BY average_revenue DESC;
+
+-- Q11. Which day generates the highest revenue?
+-- Identify the day of the week with the highest revenue.
+SELECT
+    DAYNAME(Date) AS sales_day,
+    SUM(`Total Amount`) AS total_revenue
+FROM retail_sales_dataset
+GROUP BY sales_day
+ORDER BY total_revenue DESC;
+
+-- Q12. Which product category has the highest average quantity per transaction?
+-- Understand which category has the highest average quantity purchased per transaction.
+SELECT
+    `Product Category`,
+    AVG(Quantity) AS average_quantity
+FROM retail_sales_dataset
+GROUP BY `Product Category`
+ORDER BY average_quantity DESC;
+
+-- Q13. How many unique customers purchase from each gender?
+-- Compare the number of unique male and female customers.
+SELECT
+    Gender,
+    COUNT(DISTINCT `Customer ID`) AS unique_customers
+FROM retail_sales_dataset
+GROUP BY Gender
+ORDER BY unique_customers DESC;
+
+-- Q14. Which month has the highest revenue?
+-- This combines the same calendar month across different years. Q5 already shows the monthly trend separately.
+SELECT
+    MONTHNAME(Date) AS month_name,
+    SUM(`Total Amount`) AS total_revenue
+FROM retail_sales_dataset
+GROUP BY MONTH(Date), MONTHNAME(Date)
+ORDER BY total_revenue DESC;
+
+-- Q15. Which customers have spent more than the average customer spending?
+SELECT
+    `Customer ID`,
+    SUM(`Total Amount`) AS total_spending
+FROM retail_sales_dataset
+GROUP BY `Customer ID`
+HAVING SUM(`Total Amount`) >
+(
+    SELECT AVG(customer_spending)
+    FROM
+    (
+        SELECT
+            SUM(`Total Amount`) AS customer_spending
+        FROM retail_sales_dataset
+        GROUP BY `Customer ID`
+    ) AS customer_totals
+)
+ORDER BY total_spending DESC;
+
+
+
+SELECT
+    Age,
+    COUNT(*) AS total_records,
+    SUM(`Total Amount`) AS total_revenue
+FROM retail_sales_dataset
+WHERE Age < 18 OR Age > 100 OR Age IS NULL
+GROUP BY Age;
+
+
+SELECT
+    MIN(Age) AS minimum_age,
+    MAX(Age) AS maximum_age,
+    COUNT(*) AS total_records
+FROM retail_sales_dataset;
+
+-- Verify revenue grouped by age
+
+SELECT
+    SUM(`Total Amount`) AS total_revenue,
+    COUNT(*) AS total_records
+FROM retail_sales_dataset;
+
+
+-- Verify revenue using the same age groups
+
+SELECT
+    CASE
+        WHEN Age BETWEEN 18 AND 25 THEN '18-25'
+        WHEN Age BETWEEN 26 AND 35 THEN '26-35'
+        WHEN Age BETWEEN 36 AND 45 THEN '36-45'
+        WHEN Age BETWEEN 46 AND 55 THEN '46-55'
+        ELSE 'Above 55'
+    END AS age_group,
+    COUNT(*) AS total_customers,
+    SUM(`Total Amount`) AS total_revenue
+FROM retail_sales_dataset
+GROUP BY age_group
+ORDER BY age_group;
